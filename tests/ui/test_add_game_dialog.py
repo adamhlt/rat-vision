@@ -4,6 +4,7 @@ from ratvision.domain.models import AppSettings, DisplayInfo, GameProfile, Visua
 from ratvision.domain.profile_service import ProfileService
 from ratvision.ui.add_game_dialog import AddGameDialog
 from ratvision.ui.theme import ThemeManager
+from ratvision.platform.windows.gpu_detector import get_gpu_info
 
 
 class Controller:
@@ -34,7 +35,7 @@ def test_create_profile_from_exe_defaults_to_primary_display():
     assert profile.name == "My Game"
     assert profile.processes == ["mygame.exe"]
     assert profile.display_ids == ["D1"]
-    assert profile.visual == VisualParameters()
+    assert profile.visual == VisualParameters(saturation=get_gpu_info().default_saturation)
     assert controller.saved == 1
     root.destroy()
 
