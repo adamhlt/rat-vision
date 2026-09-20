@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Any
 
 from ratvision.domain.models import normalize_executable
+from ratvision.platform.windows.gpu_detector import get_gpu_info
 
 CURRENT_SCHEMA_VERSION = 1
 
@@ -55,7 +56,7 @@ def migrate_payload(payload: dict[str, Any]) -> dict[str, Any]:
                         "brightness": float(payload.get("brightness", 0.5)),
                         "contrast": float(payload.get("contrast", 0.5)),
                         "gamma": float(payload.get("gamma", 1.0)),
-                        "saturation": int(payload.get("saturation", 0)),
+                        "saturation": int(payload.get("saturation", get_gpu_info().default_saturation)),
                     },
                     "builtin_id": None,
                 }

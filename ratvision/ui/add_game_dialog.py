@@ -9,6 +9,7 @@ from ratvision.platform.processes import ProcessDiscovery, RunningProcess
 from ratvision.ui.controls.button import RatButton
 from ratvision.ui.controls.checkbox import RatCheckBox
 from ratvision.ui.tooltip import attach_tooltip
+from ratvision.platform.windows.gpu_detector import get_gpu_info
 
 
 class AddGameDialog:
@@ -46,7 +47,7 @@ class AddGameDialog:
             emoji=emoji or "🎮",
             processes=[normalize_executable(value) for value in processes],
             display_ids=list(display_ids if display_ids is not None else self._primary_display_ids()),
-            visual=VisualParameters(),
+            visual=VisualParameters(saturation=get_gpu_info().default_saturation),
         )
         self.controller.profile_service.add_profile(profile)
         if copy_from_id:

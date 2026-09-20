@@ -18,12 +18,12 @@ class VisualParameters:
     gamma: float = 1.0
     saturation: int = 0
 
-    def normalized(self) -> "VisualParameters":
+    def normalized(self, max_saturation: int = 100) -> "VisualParameters":
         return VisualParameters(
             brightness=min(max(float(self.brightness), 0.0), 1.0),
             contrast=min(max(float(self.contrast), 0.0), 1.0),
             gamma=min(max(float(self.gamma), 0.4), 2.8),
-            saturation=int(min(max(int(self.saturation), 0), 100)),
+            saturation=int(min(max(int(self.saturation), 0), max_saturation)),
         )
 
 

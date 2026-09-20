@@ -9,6 +9,7 @@ from ratvision.ui.controls.checkbox import RatCheckBox
 from ratvision.ui.controls.slider import RatSlider
 from ratvision.ui.theme import ThemeTokens
 from ratvision.ui.tooltip import attach_tooltip
+from ratvision.platform.windows.gpu_detector import get_gpu_info
 
 
 @dataclass(slots=True)
@@ -18,11 +19,18 @@ class ProcessRow:
 
 
 class ProfileWorkspace(tk.Frame):
-    PARAMS = (
+    PARAMS_NVIDIA = (
         ("brightness", "☀️  BRIGHTNESS", 0.0, 1.0, 0.5, ".2f"),
         ("contrast", "◐  CONTRAST", 0.0, 1.0, 0.5, ".2f"),
         ("gamma", "🌗  GAMMA", 0.4, 2.8, 1.0, ".2f"),
         ("saturation", "🎨  SATURATION", 0.0, 100.0, 0.0, ".0f"),
+    )
+
+    PARAMS_AMD = (
+        ("brightness", "☀️  BRIGHTNESS", 0.0, 1.0, 0.5, ".2f"),
+        ("contrast", "◐  CONTRAST", 0.0, 1.0, 0.5, ".2f"),
+        ("gamma", "🌗  GAMMA", 0.4, 2.8, 1.0, ".2f"),
+        ("saturation", "🎨  SATURATION", 0.0, 200.0, 100.0, ".0f"),
     )
 
     def __init__(self, master, controller, profile: GameProfile, displays: list[DisplayInfo], theme: ThemeTokens):
@@ -67,6 +75,12 @@ class ProfileWorkspace(tk.Frame):
         return label
 
     def _build(self):
+        gpu = get_gpu_info()
+        self.params = (
+            self.PARAMS_AMD 
+            if gpu.is_amd 
+            else self.PARAMS_NVIDIA
+        )
         self.columnconfigure(1, weight=1)
         is_global = self.profile.builtin_id == "global"
         profile_code = "GLOBAL" if is_global else "PROFILE // 01"
@@ -85,7 +99,7 @@ class ProfileWorkspace(tk.Frame):
         row = 4
         self._section_title("👁️  VISUAL PARAMETERS", row)
         row += 1
-        for key, title, minimum, maximum, default, fmt in self.PARAMS:
+        for key, title, minimum, maximum, default, fmt in self.params:
             self._label(self, title, bold=True, row=row, column=0, sticky="w", padx=(0, 14), pady=2)
             current = float(getattr(self.profile.visual, key))
             slider = RatSlider(
@@ -100,12 +114,19 @@ class ProfileWorkspace(tk.Frame):
             )
             slider.grid(row=row, column=1, sticky="ew", pady=2)
             self.parameter_sliders[key] = slider
+            saturation_help = (
+                "AMD display color saturation. Changes color saturation through the AMD Display Library when supported."
+                if gpu.is_amd
+                else "NVIDIA Digital Vibrance. Changes color saturation through the NVIDIA driver when supported."
+            )
+
             parameter_help = {
                 "brightness": "Changes overall brightness for the selected monitors in this profile.",
                 "contrast": "Changes the separation between darker and brighter tones.",
                 "gamma": "Adjusts mid-tones without changing every level uniformly.",
-                "saturation": "NVIDIA Digital Vibrance. Changes color saturation through the NVIDIA driver when supported.",
+                "saturation": saturation_help,
             }[key]
+            
             attach_tooltip(slider, parameter_help, self.theme)
             value_label = self._label(self, format(current, fmt), mono=True, row=row, column=2, padx=(14, 10), sticky="e")
             self.parameter_value_labels[key] = value_label
@@ -185,9 +206,9 @@ class ProfileWorkspace(tk.Frame):
     def _set_parameter(self, key: str, value: float):
         if key == "saturation":
             value = int(round(value))
-        self.profile.visual = replace(self.profile.visual, **{key: value}).normalized()
+        self.profile.visual = replace(self.profile.visual, **{key: value}).normalized(get_gpu_info().max_saturation)
         actual = getattr(self.profile.visual, key)
-        fmt = next(item[5] for item in self.PARAMS if item[0] == key)
+        fmt = next(item[5] for item in self.params if item[0] == key)
         if key in self.parameter_value_labels:
             self.parameter_value_labels[key].configure(text=format(float(actual), fmt))
         self.controller.save_settings()
@@ -198,13 +219,13 @@ class ProfileWorkspace(tk.Frame):
         self._set_parameter(key, default)
 
     def _reset_all(self):
-        defaults = VisualParameters()
-        for key, _title, _minimum, _maximum, _default, _fmt in self.PARAMS:
+        defaults = VisualParameters(saturation=get_gpu_info().default_saturation)
+        for key, _title, _minimum, _maximum, _default, _fmt in self.params:
             value = getattr(defaults, key)
             self.parameter_sliders[key].set(value)
         self.profile.visual = defaults
         for key, label in self.parameter_value_labels.items():
-            fmt = next(item[5] for item in self.PARAMS if item[0] == key)
+            fmt = next(item[5] for item in self.params if item[0] == key)
             label.configure(text=format(float(getattr(defaults, key)), fmt))
         self.controller.save_settings()
         self.controller.refresh_profile(self.profile.id)

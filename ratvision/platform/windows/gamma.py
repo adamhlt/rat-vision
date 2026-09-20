@@ -12,13 +12,14 @@ import threading
 
 from ratvision.domain.models import VisualParameters
 from ratvision.platform.base import PlatformUnavailableError
+from ratvision.platform.windows.gpu_detector import get_gpu_info
 
 
 RampTuple = tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...]]
 
 
 def calculate_lut(params: VisualParameters) -> tuple[int, ...]:
-    params = params.normalized()
+    params = params.normalized(get_gpu_info().max_saturation)
     data_points = 256
     gamma = min(max(params.gamma, 0.4), 2.8)
     contrast = (min(max(params.contrast, 0.0), 1.0) - 0.5) * 2.0

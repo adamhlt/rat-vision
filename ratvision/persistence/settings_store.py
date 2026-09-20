@@ -13,7 +13,9 @@ from ratvision.domain.models import (
     ThemeMode,
     VisualParameters,
 )
+from ratvision.platform.windows.gpu_detector import get_gpu_info
 from .migration import CURRENT_SCHEMA_VERSION, migrate_payload
+
 
 
 class SettingsStore:
@@ -132,7 +134,7 @@ class SettingsStore:
                         float(visual.get("brightness", 0.5)),
                         float(visual.get("contrast", 0.5)),
                         float(visual.get("gamma", 1.0)),
-                        int(visual.get("saturation", 0)),
+                        int(visual.get("saturation", get_gpu_info().default_saturation)),
                     ),
                     builtin_id=row.get("builtin_id"),
                 )

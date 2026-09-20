@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from .models import DisplayInfo, GameProfile, VisualParameters
+from ratvision.platform.windows.gpu_detector import get_gpu_info
 
 
 def _default_display_ids(displays: Sequence[DisplayInfo]) -> list[str]:
@@ -21,7 +22,7 @@ def create_global_profile(displays: Sequence[DisplayInfo]) -> GameProfile:
         emoji="🌐",
         processes=[],
         display_ids=_default_display_ids(displays),
-        visual=VisualParameters(),
+        visual=VisualParameters(saturation=get_gpu_info().default_saturation),
         builtin_id="global",
     )
 
@@ -39,7 +40,7 @@ def ensure_global_profile(profiles: list[GameProfile], displays: Sequence[Displa
 
 def create_default_profiles(displays: Sequence[DisplayInfo]) -> list[GameProfile]:
     target_displays = _default_display_ids(displays)
-    common = VisualParameters()
+    common = VisualParameters(saturation=get_gpu_info().default_saturation)
     return [
         create_global_profile(displays),
         GameProfile(

@@ -3,15 +3,23 @@ from __future__ import annotations
 from ratvision.domain.models import VisualParameters
 from .gamma import GammaController
 from .dvc_subprocess import DvcSubprocessController
-
+from .gpu_detector import get_gpu_info
 
 class WindowsColorBackend:
     def __init__(self, *, gamma=None, dvc=None):
+        gpu = get_gpu_info()
         self.gamma = gamma or GammaController()
         self.dvc = dvc
-        if self.dvc is None:
+        if self.dvc is None and gpu.is_nvidia:
             try:
                 self.dvc = DvcSubprocessController()
+            except Exception:
+                self.dvc = None
+        if self.dvc is None and gpu.is_amd:
+            try:
+                from .adl import AdlSaturationController
+
+                self.dvc = AdlSaturationController()
             except Exception:
                 self.dvc = None
         self._dvc_unsupported: set[str] = set()
@@ -25,7 +33,7 @@ class WindowsColorBackend:
                 self._dvc_unsupported.add(display_id)
 
     def apply(self, display_id: str, params: VisualParameters) -> None:
-        params = params.normalized()
+        params = params.normalized(get_gpu_info().max_saturation)
         self.gamma.apply(display_id, params)
         if self.dvc is not None and display_id not in self._dvc_unsupported:
             try:
